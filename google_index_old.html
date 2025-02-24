@@ -1,0 +1,639 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+	<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+
+	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+	
+	<script type="text/javascript"
+      src="lib/jqplot/jquery.jqplot.min.js">
+    </script>
+	<script type="text/javascript"
+		src="lib/proj4js-combined.js">
+	</script>
+	
+	<script type="text/javascript" 
+		src="lib/jqplot/plugins/jqplot.highlighter.min.js">
+	</script>
+	
+	<script type="text/javascript" 
+		src="lib/jqplot/plugins/jqplot.cursor.min.js">
+	</script>
+	
+	<script type="text/javascript" 
+		src="lib/jqplot/plugins/jqplot.dateAxisRenderer.min.js">
+	</script>
+    
+	<link rel="stylesheet" type="text/css" href="lib/jqplot/jquery.jqplot.css" />
+	
+  </head>
+  <body onload="initialize()">
+  
+			<div id="stylized" class="myform">
+
+			<label>X koordināta</label><input type="text" id="xCoord" name="xCoord" value="234234"/><br/>
+			<label>Y koordināta</label><input type="text" id="yCoord" name="yCoord" value="234432"/><br/>
+
+		
+  <script type="text/javascript">
+		var map;
+		var infowindow=new google.maps.InfoWindow();
+		var isFirstClick=true;
+		function initialize() {
+			//nodefinējam projekcijas - viena ir BALTIC TM-93 (sešu miljonu pa y asi koordināta)
+			//otra ir lat-long wgs84 ko lieto google maps.
+			Proj4js.defs["EPSG:25884"] = "+proj=tmerc +lat_0=0 +lon_0=24 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs"; 
+			Proj4js.defs["EPSG:4326"] = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
+			var coordBTM93 = new Proj4js.Proj('EPSG:25884');
+			var coordWGS = new Proj4js.Proj('EPSG:4326'); 
+			var x = document.getElementById('xCoord').value;
+			var y = document.getElementById('yCoord').value;
+			
+			x = parseFloat(x);
+			y = parseFloat(y);
+			//weblapā ir forma ar diviem input boxiem kuros var būt un var nebūt pirms tam definēta vērtība
+			//var būt tādā gadījumā, ja pirms tam tiek ģenerēta vērtība no mysql vai vienalga kurienes
+			//var x=document.forms["forma"]["xCoord"].value;
+			//alert(x);
+			//var y=document.forms["forma"]["yCoord"].value;
+			//bet var arī nebūt definēta. tāpēc ir if nosacījums, kas piešķir defaultu kkādu lat/lon latvijā
+			
+			
+			//var c = map.getCenter();
+			
+			if (x==null || x=="" || x<300000 || y==null || y=="" || y<6000000) 
+			{
+			var WGSLat = 56.5;
+			var WGSLng = 24;
+			}
+			else
+			{
+			var p_box = new Proj4js.Point(x,y);				//vai arī ja input boxos ir definēts kaut kas  Baltic TM-93 formātā
+			Proj4js.transform(coordBTM93,coordWGS, p_box);  //tad transformē to uz latlong priekš google maps
+			var WGSLat = p_box.y;
+			var WGSLng = p_box.x;
+			}
+
+			//ģenerē jaunu latlng objektu, kuru izmantos tālāk viskautkur - kartei un marķierim
+			var latlng = new google.maps.LatLng(WGSLat,WGSLng);  
+			
+			var geocoder = new google.maps.Geocoder();
+				geocoder.geocode({'address': 'Latvija'}, function (results, status) {
+					map.fitBounds(results[0].geometry.viewport);   
+					map.setZoom(8)
+				 });
+				 
+
+			var myOptions = {
+				center: latlng,
+				zoom: 8,
+				mapTypeId: google.maps.MapTypeId.ROADMAP
+			};
+			
+
+			var map = new google.maps.Map(document.getElementById("map_canvas"),myOptions);
+			
+			 var polyCoords=[]
+			
+			 
+			 polyCoords[0] = [
+				//#Rucava
+				new google.maps.LatLng ( 56.297318584424595, 20.988959614671423 ),
+				new google.maps.LatLng ( 56.369860323858227, 21.852403816703081 ),
+				new google.maps.LatLng ( 56.322358229136334, 21.76124004501423  ), 
+				new google.maps.LatLng ( 56.309201452373252, 21.713223632665027 ), 
+				new google.maps.LatLng ( 56.315956621367526, 21.611543055202649 ),
+				new google.maps.LatLng ( 56.294028770541907, 21.535880509820014 ), 
+				new google.maps.LatLng ( 56.239406209396741, 21.441693837350375 ),
+				new google.maps.LatLng ( 56.214009967595473, 21.32839516753576  ), 
+				new google.maps.LatLng ( 56.171863753161944, 21.278956767486104 ), 
+				new google.maps.LatLng ( 56.156652491084223, 21.235148164084645 ), 
+				new google.maps.LatLng ( 56.121705054391803, 21.236812356796971 ),
+				new google.maps.LatLng ( 56.075710243910166, 21.204275018867861 ),
+				new google.maps.LatLng ( 56.069493444262349, 21.064203015127998 ), 
+				new google.maps.LatLng ( 56.221089202381314, 20.96970333565562  ), 
+				new google.maps.LatLng ( 56.297318584424595, 20.968959614671423 )
+			  ];
+			  
+			  polyCoords[1] = [
+				//#Dagda
+				new google.maps.LatLng ( 55.8200776816 , 27.0229117254 ),
+				new google.maps.LatLng ( 56.1725378379 , 26.9927736297 ),
+				new google.maps.LatLng ( 56.3863944797 , 28.1712439591 ),
+				new google.maps.LatLng ( 56.2766218045 , 28.258885702 ),
+				new google.maps.LatLng ( 56.2162824451 , 28.2040029999 ),
+				new google.maps.LatLng ( 56.1753642681 , 28.1889860442 ),
+				new google.maps.LatLng ( 56.13598858 , 28.0929357004 ),
+				new google.maps.LatLng ( 56.1208347644 , 28.0400249793 ),
+				new google.maps.LatLng ( 56.0472625196 , 27.9012882673 ),
+				new google.maps.LatLng ( 55.9764335445 , 27.8042841658 ),
+				new google.maps.LatLng ( 55.9268992355 , 27.6801806051 ),
+				new google.maps.LatLng ( 55.8477492312 , 27.6401193388 ),
+				new google.maps.LatLng ( 55.7737673657 , 27.6260062698 ),
+				new google.maps.LatLng ( 55.7854763551 , 27.2880251527 ),
+				new google.maps.LatLng ( 55.7914794642 , 27.2479137738 ),
+				new google.maps.LatLng ( 55.8411860921 , 27.1544332105 ),
+				new google.maps.LatLng ( 55.8254399026 , 27.0975172755 ),
+				new google.maps.LatLng ( 55.8200776816 , 27.0229117254 )
+			  ];
+			  
+			  polyCoords[2] = [
+				//#Bauska
+				new google.maps.LatLng ( 56.322867339 , 23.7715737027 ),
+				new google.maps.LatLng ( 56.6506090277 , 24.2328192093 ),
+				new google.maps.LatLng ( 56.6960126998 , 24.6000091487 ),
+				new google.maps.LatLng ( 56.4021402965 , 24.8252455804 ),
+				new google.maps.LatLng ( 56.3775168098 , 24.6930241648 ),
+				new google.maps.LatLng ( 56.3495709672 , 24.6287282489 ),
+				new google.maps.LatLng ( 56.285248551 , 24.5988205659 ),
+				new google.maps.LatLng ( 56.253930119 , 24.4642158003 ),
+				new google.maps.LatLng ( 56.2571594087 , 24.4213523833 ),
+				new google.maps.LatLng ( 56.2855503296 , 24.2896245871 ),
+				new google.maps.LatLng ( 56.2556087461 , 24.2495680711 ),
+				new google.maps.LatLng ( 56.2426288657 , 24.1281290408 ),
+				new google.maps.LatLng ( 56.2795463872 , 24.0459295116 ),
+				new google.maps.LatLng ( 56.3116724577 , 24.0226915516 ),
+				new google.maps.LatLng ( 56.322867339 , 23.7715737027 )
+			  ];
+			  
+			  polyCoords[3] = [
+				//#Rezekne
+				new google.maps.LatLng ( 56.1725378379 , 26.9927736297 ),
+				new google.maps.LatLng ( 56.2867699309 , 26.6289719749 ),
+				new google.maps.LatLng ( 56.6539030028 , 26.6073506206 ),
+				new google.maps.LatLng ( 56.9695807884 , 27.7119291334 ),
+				new google.maps.LatLng ( 56.9725208374 , 27.7501466007 ),
+				new google.maps.LatLng ( 56.8860792387 , 27.741472872 ),
+				new google.maps.LatLng ( 56.88686022 , 27.8561608049 ),
+				new google.maps.LatLng ( 56.8447682162 , 27.9783336576 ),
+				new google.maps.LatLng ( 56.8098363414 , 27.9776626655 ),
+				new google.maps.LatLng ( 56.7505212485 , 27.9349673193 ),
+				new google.maps.LatLng ( 56.7050995549 , 28.0079143194 ),
+				new google.maps.LatLng ( 56.5856410235 , 28.1541697984 ),
+				new google.maps.LatLng ( 56.5491655643 , 28.1557211963 ),
+				new google.maps.LatLng ( 56.5156746662 , 28.1261516947 ),
+				new google.maps.LatLng ( 56.4375312445 , 28.2418185404 ),
+				new google.maps.LatLng ( 56.3863944797 , 28.1712439591 ),
+				new google.maps.LatLng ( 56.1725378379 , 26.9927736297 )
+			  ];
+			  
+			  polyCoords[4] = [
+				//#Aluksne
+				new google.maps.LatLng ( 56.9695807884 , 27.7119291334 ),
+				new google.maps.LatLng ( 57.4355241027 , 26.1758632461 ),
+				new google.maps.LatLng ( 57.5207679429 , 26.1544284851 ),
+				new google.maps.LatLng ( 57.6306959267 , 26.257090185 ),
+				new google.maps.LatLng ( 57.617962194 , 26.2994081519 ),
+				new google.maps.LatLng ( 57.5710933833 , 26.4776567942 ),
+				new google.maps.LatLng ( 57.571908338 , 26.6715951702 ),
+				new google.maps.LatLng ( 57.6441716282 , 26.9207525472 ),
+				new google.maps.LatLng ( 57.6042894347 , 27.0317729134 ),
+				new google.maps.LatLng ( 57.564636989 , 27.1994002195 ),
+				new google.maps.LatLng ( 57.5529186571 , 27.381513593 ),
+				new google.maps.LatLng ( 57.5376888395 , 27.5556652454 ),
+				new google.maps.LatLng ( 57.5132870113 , 27.5834465569 ),
+				new google.maps.LatLng ( 57.4161160189 , 27.6014953548 ),
+				new google.maps.LatLng ( 57.3938946709 , 27.6737791748 ),
+				new google.maps.LatLng ( 57.3403456287 , 27.8429546269 ),
+				new google.maps.LatLng ( 57.2654106564 , 27.8872885068 ),
+				new google.maps.LatLng ( 57.1922493911 , 27.8530623202 ),
+				new google.maps.LatLng ( 57.1391872535 , 27.8447726047 ),
+				new google.maps.LatLng ( 57.084877497 , 27.7700423035 ),
+				new google.maps.LatLng ( 57.0037872231 , 27.7652288877 ),
+				new google.maps.LatLng ( 56.9725208374 , 27.7501466007 ),
+				new google.maps.LatLng ( 56.9695807884 , 27.7119291334 )
+			  ];
+			  
+			   polyCoords[5] = [
+				//#Stende
+				new google.maps.LatLng ( 56.8517722105 , 22.9975843218 ),
+				new google.maps.LatLng ( 56.8832111494 , 21.8302329147 ),
+				new google.maps.LatLng ( 57.408285459 , 22.2033592844 ),
+				new google.maps.LatLng ( 57.3993387658 , 22.6703462498 ),
+				new google.maps.LatLng ( 56.9016696785 , 23.1200686012 ),
+				new google.maps.LatLng ( 56.8517722105 , 22.9975843218 )
+			  ];
+			  
+			  polyCoords[6] = [
+				//#Zilani
+				new google.maps.LatLng ( 56.1446824463 , 25.2967466576 ),
+				new google.maps.LatLng ( 56.6938841944 , 25.6997071561 ),
+				new google.maps.LatLng ( 56.6990800257 , 26.493681968 ),
+				new google.maps.LatLng ( 56.6539030028 , 26.6073506206 ),
+				new google.maps.LatLng ( 56.2867699309 , 26.6289719749 ),
+				new google.maps.LatLng ( 55.9829326541 , 25.8588800445 ),
+				new google.maps.LatLng ( 56.0461052389 , 25.8043031077 ),
+				new google.maps.LatLng ( 56.0624416157 , 25.6995389873 ),
+				new google.maps.LatLng ( 56.1244934582 , 25.665119835 ),
+				new google.maps.LatLng ( 56.1396864486 , 25.5660719606 ),
+				new google.maps.LatLng ( 56.1379988769 , 25.4439072902 ),
+				new google.maps.LatLng ( 56.1446824463 , 25.2967466576 )
+			  ];
+			  
+			  polyCoords[7] = [
+				//#Ventspils
+				new google.maps.LatLng ( 56.812221582 , 21.6546072516 ),
+				new google.maps.LatLng ( 56.8573132894 , 21.0340724123 ),
+				new google.maps.LatLng ( 56.9328820521 , 21.2327012087 ),
+				new google.maps.LatLng ( 57.0158134802 , 21.3870013047 ),
+				new google.maps.LatLng ( 57.1702986956 , 21.3970370899 ),
+				new google.maps.LatLng ( 57.2978384416 , 21.4121575557 ),
+				new google.maps.LatLng ( 57.3980281418 , 21.5185989407 ),
+				new google.maps.LatLng ( 57.5611489379 , 21.691622712 ),
+				new google.maps.LatLng ( 57.5792399117 , 21.7113772129 ),
+				new google.maps.LatLng ( 57.5955905682 , 21.8328175233 ),
+				new google.maps.LatLng ( 57.408285459 , 22.2033592844 ),
+				new google.maps.LatLng ( 56.8832111494 , 21.8302329147 ),
+				new google.maps.LatLng ( 56.812221582 , 21.6546072516 )
+			  ];
+			  
+			  polyCoords[8] = [
+				//#Kolka
+				new google.maps.LatLng ( 57.3993387658 , 22.6703462498 ),
+				new google.maps.LatLng ( 57.408285459 , 22.2033592844 ),
+				new google.maps.LatLng ( 57.5955905682 , 21.8328175233 ),
+				new google.maps.LatLng ( 57.8011887621 , 22.6394602122 ),
+				new google.maps.LatLng ( 57.472496291 , 22.869319725 ),
+				new google.maps.LatLng ( 57.3993387658 , 22.6703462498 )
+							  ];
+			  
+			  polyCoords[9] = [
+				//#Liepaja
+				new google.maps.LatLng ( 56.8573132894 , 21.0340724123 ),
+				new google.maps.LatLng ( 56.812221582 , 21.6546072516 ),
+				new google.maps.LatLng ( 56.3698603239 , 21.8524038167 ),
+				new google.maps.LatLng ( 56.2973185844 , 20.9889596147 ),
+				new google.maps.LatLng ( 56.3712644113 , 20.9650819298 ),
+				new google.maps.LatLng ( 56.4759952098 , 21.0002235844 ),
+				new google.maps.LatLng ( 56.523445167 , 20.9821744798 ),
+				new google.maps.LatLng ( 56.5577897095 , 20.9992490373 ),
+				new google.maps.LatLng ( 56.6838749783 , 21.0491647951 ),
+				new google.maps.LatLng ( 56.8573132894 , 21.0340724123 )
+			  ];
+			  
+			  polyCoords[10] = [
+				//#Daugavpils
+				new google.maps.LatLng ( 55.9829326541 , 25.8588800445 ),
+				new google.maps.LatLng ( 56.2867699309 , 26.6289719749 ),
+				new google.maps.LatLng ( 56.1725378379 , 26.9927736297 ),
+				new google.maps.LatLng ( 55.8200776816 , 27.0229117254 ),
+				new google.maps.LatLng ( 55.786569444 , 26.9514767167 ),
+				new google.maps.LatLng ( 55.7500859843 , 26.9032951671 ),
+				new google.maps.LatLng ( 55.7129637089 , 26.8707359072 ),
+				new google.maps.LatLng ( 55.674286947 , 26.8021585686 ),
+				new google.maps.LatLng ( 55.671054265 , 26.6393538498 ),
+				new google.maps.LatLng ( 55.6676607731 , 26.5364263537 ),
+				new google.maps.LatLng ( 55.6943050825 , 26.3909982222 ),
+				new google.maps.LatLng ( 55.7376272251 , 26.2792443958 ),
+				new google.maps.LatLng ( 55.814049281 , 26.2309910867 ),
+				new google.maps.LatLng ( 55.879171933 , 26.1208089232 ),
+				new google.maps.LatLng ( 55.9829326541 , 25.8588800445 )
+
+			  ];
+			  
+			  polyCoords[11] = [
+				//#Rujiena
+				new google.maps.LatLng ( 57.5207679429 , 26.1544284851 ),
+				new google.maps.LatLng ( 57.5433431227 , 24.9085437877 ),
+				new google.maps.LatLng ( 57.9839416313 , 24.871939705 ),
+				new google.maps.LatLng ( 58.0789973001 , 25.090995138 ),
+				new google.maps.LatLng ( 58.0880217541 , 25.1805300894 ),
+				new google.maps.LatLng ( 58.0916418964 , 25.2831825569 ),
+				new google.maps.LatLng ( 58.0351557026 , 25.4486284799 ),
+				new google.maps.LatLng ( 57.9752677417 , 25.5895714153 ),
+				new google.maps.LatLng ( 57.9311284541 , 25.6400049311 ),
+				new google.maps.LatLng ( 57.90680593 , 25.7007670232 ),
+				new google.maps.LatLng ( 57.9341890394 , 25.7343486183 ),
+				new google.maps.LatLng ( 57.8846128533 , 25.8298851934 ),
+				new google.maps.LatLng ( 57.8628838725 , 25.9006481932 ),
+				new google.maps.LatLng ( 57.866214492 , 25.9994023185 ),
+				new google.maps.LatLng ( 57.8477053939 , 26.054599937 ),
+				new google.maps.LatLng ( 57.7937332152 , 26.0905910809 ),
+				new google.maps.LatLng ( 57.7139956633 , 26.2022620301 ),
+				new google.maps.LatLng ( 57.6796035788 , 26.2407656353 ),
+				new google.maps.LatLng ( 57.6306959267 , 26.257090185 ),
+				new google.maps.LatLng ( 57.5207679429 , 26.1544284851 )
+			  ];
+			  
+			  polyCoords[12] = [
+				//#Zoseni
+				new google.maps.LatLng ( 56.6938841944 , 25.6997071561 ),
+				new google.maps.LatLng ( 56.9302450766 , 25.3389731224 ),
+				new google.maps.LatLng ( 57.3553312984 , 26.1391299076 ),
+				new google.maps.LatLng ( 56.6990800257 , 26.493681968 ),
+				new google.maps.LatLng ( 56.6938841944 , 25.6997071561 )
+			  ];
+			  
+			  polyCoords[13] = [
+				//#Skriveri
+				new google.maps.LatLng ( 56.4021402965 , 24.8252455804 ),
+				new google.maps.LatLng ( 56.6960126998 , 24.6000091487 ),
+				new google.maps.LatLng ( 56.9003018463 , 24.7656398807 ),
+				new google.maps.LatLng ( 56.9566081209 , 24.9135993473 ),
+				new google.maps.LatLng ( 56.9302450766 , 25.3389731224 ),
+				new google.maps.LatLng ( 56.6938841944 , 25.6997071561 ),
+				new google.maps.LatLng ( 56.1446824463 , 25.2967466576 ),
+				new google.maps.LatLng ( 56.1663134068 , 25.1789966808 ),
+				new google.maps.LatLng ( 56.182676349 , 25.0801770294 ),
+				new google.maps.LatLng ( 56.2572596793 , 25.0312724558 ),
+				new google.maps.LatLng ( 56.3095226514 , 24.9761952385 ),
+				new google.maps.LatLng ( 56.3741910983 , 24.9446468581 ),
+				new google.maps.LatLng ( 56.4164001294 , 24.8612043307 ),
+				new google.maps.LatLng ( 56.4021402965 , 24.8252455804 )
+			  ];
+			  
+			  polyCoords[14] = [
+				//#Ainazi
+				new google.maps.LatLng ( 57.9839416313 , 24.871939705 ),
+				new google.maps.LatLng ( 57.5433431227 , 24.9085437877 ),
+				new google.maps.LatLng ( 57.5297182066 , 24.8817202944 ),
+				new google.maps.LatLng ( 57.5152200921 , 24.2947789847 ),
+				new google.maps.LatLng ( 57.853322852 , 24.3255383315 ),
+				new google.maps.LatLng ( 57.8743241754 , 24.3547275434 ),
+				new google.maps.LatLng ( 57.9072772301 , 24.4453015681 ),
+				new google.maps.LatLng ( 57.9252039484 , 24.4634308996 ),
+				new google.maps.LatLng ( 57.9437017641 , 24.5205972306 ),
+				new google.maps.LatLng ( 57.9624308433 , 24.5844503667 ),
+				new google.maps.LatLng ( 57.9594490881 , 24.6438847975 ),
+				new google.maps.LatLng ( 57.9807860982 , 24.7420910944 ),
+				new google.maps.LatLng ( 57.9902838759 , 24.8093058149 ),
+				new google.maps.LatLng ( 57.9839416313 , 24.871939705 )
+			  ];
+			  
+			  polyCoords[15] = [
+				//#Dobele
+				new google.maps.LatLng ( 56.3670375773 , 22.8891687761 ),
+				new google.maps.LatLng ( 56.8517722105 , 22.9975843218 ),
+				new google.maps.LatLng ( 56.9016696785 , 23.1200686012 ),
+				new google.maps.LatLng ( 56.9252832661 , 23.3940070462 ),
+				new google.maps.LatLng ( 56.3618276926 , 23.6527687438 ),
+				new google.maps.LatLng ( 56.3254509163 , 23.5409193298 ),
+				new google.maps.LatLng ( 56.3654412574 , 23.3806752253 ),
+				new google.maps.LatLng ( 56.3688555622 , 23.2786389148 ),
+				new google.maps.LatLng ( 56.3373249037 , 23.1839595838 ),
+				new google.maps.LatLng ( 56.3005223685 , 23.1004539069 ),
+				new google.maps.LatLng ( 56.3198639705 , 23.0375416437 ),
+				new google.maps.LatLng ( 56.3498033412 , 23.0161353682 ),
+				new google.maps.LatLng ( 56.3853549317 , 22.9366545309 ),
+				new google.maps.LatLng ( 56.3670375773 , 22.8891687761 )
+			  ];
+			  
+			  polyCoords[16] = [
+				//#Priekuli
+				new google.maps.LatLng ( 56.9302450766 , 25.3389731224 ),
+				new google.maps.LatLng ( 56.9566081209 , 24.9135993473 ),
+				new google.maps.LatLng ( 57.5297182066 , 24.8817202944 ),
+				new google.maps.LatLng ( 57.5433431227 , 24.9085437877 ),
+				new google.maps.LatLng ( 57.5207679429 , 26.1544284851 ),
+				new google.maps.LatLng ( 57.4355241027 , 26.1758632461 ),
+				new google.maps.LatLng ( 57.3553312984 , 26.1391299076 ),
+				new google.maps.LatLng ( 56.9302450766 , 25.3389731224 )
+			  ];
+			  
+			  polyCoords[17] = [
+				//#Gulbene
+				new google.maps.LatLng ( 56.6539030028 , 26.6073506206 ),
+				new google.maps.LatLng ( 56.6990800257 , 26.493681968 ),
+				new google.maps.LatLng ( 57.3553312984 , 26.1391299076 ),
+				new google.maps.LatLng ( 57.4355241027 , 26.1758632461 ),
+				new google.maps.LatLng ( 56.9695807884 , 27.7119291334 ),
+				new google.maps.LatLng ( 56.6539030028 , 26.6073506206 )
+			  ];
+			  
+			   polyCoords[18] = [
+				//#Skulte
+				new google.maps.LatLng ( 56.9003018463 , 24.7656398807 ),
+				new google.maps.LatLng ( 57.0978613314 , 24.1545614085 ),
+				new google.maps.LatLng ( 57.1840102878 , 24.2799470916 ),
+				new google.maps.LatLng ( 57.5152200921 , 24.2947789847 ),
+				new google.maps.LatLng ( 57.5297182066 , 24.8817202944 ),
+				new google.maps.LatLng ( 56.9566081209 , 24.9135993473 ),
+				new google.maps.LatLng ( 56.9003018463 , 24.7656398807 )
+			  ];
+			  
+			  polyCoords[19] = [
+				//#Riga
+				new google.maps.LatLng ( 56.6506090277 , 24.2328192093 ),
+				new google.maps.LatLng ( 56.9252832661 , 23.3940070462 ),
+				new google.maps.LatLng ( 57.0234623064 , 23.5297744535 ),
+				new google.maps.LatLng ( 57.0638255561 , 24.0250870551 ),
+				new google.maps.LatLng ( 57.0978613314 , 24.1545614085 ),
+				new google.maps.LatLng ( 56.9003018463 , 24.7656398807 ),
+				new google.maps.LatLng ( 56.6960126998 , 24.6000091487 ),
+				new google.maps.LatLng ( 56.6506090277 , 24.2328192093 )
+			  ];
+
+			polyCoords[20] = [
+				//#Mersrags
+				new google.maps.LatLng ( 56.9016696785 , 23.1200686012 ),
+				new google.maps.LatLng ( 57.3993387658 , 22.6703462498 ),
+				new google.maps.LatLng ( 57.472496291 , 22.869319725 ),
+				new google.maps.LatLng ( 57.3666203423 , 23.1358200161 ),
+				new google.maps.LatLng ( 57.2958777722 , 23.1670177689 ),
+				new google.maps.LatLng ( 57.1662392972 , 23.2337772416 ),
+				new google.maps.LatLng ( 57.0959177368 , 23.2989148627 ),
+				new google.maps.LatLng ( 57.0532630882 , 23.4455675252 ),
+				new google.maps.LatLng ( 57.0234623064 , 23.5297744535 ),
+				new google.maps.LatLng ( 56.9252832661 , 23.3940070462 ),
+				new google.maps.LatLng ( 56.9016696785 , 23.1200686012 )
+			  ];	
+			  
+			  polyCoords[21] = [
+				//#Jelgava
+				new google.maps.LatLng ( 56.3618276926 , 23.6527687438 ),
+				new google.maps.LatLng ( 56.9252832661 , 23.3940070462 ),
+				new google.maps.LatLng ( 56.6506090277 , 24.2328192093 ),
+				new google.maps.LatLng ( 56.322867339 , 23.7715737027 ),
+				new google.maps.LatLng ( 56.3618276926 , 23.6527687438 )
+			  ];
+			  
+			   polyCoords[22] = [
+				//#Saldus
+				new google.maps.LatLng ( 56.3698603239 , 21.8524038167 ),
+				new google.maps.LatLng ( 56.812221582 , 21.6546072516 ),
+				new google.maps.LatLng ( 56.8832111494 , 21.8302329147 ),
+				new google.maps.LatLng ( 56.8517722105 , 22.9975843218 ),
+				new google.maps.LatLng ( 56.3670375773 , 22.8891687761 ),
+				new google.maps.LatLng ( 56.3629333297 , 22.8181334418 ),
+				new google.maps.LatLng ( 56.3665884381 , 22.7351682747 ),
+				new google.maps.LatLng ( 56.3515064641 , 22.6926414618 ),
+				new google.maps.LatLng ( 56.3854115954 , 22.5695202162 ),
+				new google.maps.LatLng ( 56.4071627413 , 22.4209191959 ),
+				new google.maps.LatLng ( 56.3954330954 , 22.3500923836 ),
+				new google.maps.LatLng ( 56.401470944 , 22.2413721507 ),
+				new google.maps.LatLng ( 56.4198097834 , 22.1705967913 ),
+				new google.maps.LatLng ( 56.4094045035 , 21.9987238173 ),
+				new google.maps.LatLng ( 56.3763848577 , 21.9848115675 ),
+				new google.maps.LatLng ( 56.3594391436 , 21.8711225308 ),
+				new google.maps.LatLng ( 56.3698603239 , 21.8524038167 )
+
+			  ];
+			  
+			var meteoSarakstsID=["Rucava","Dagda","Bauska","Rezekne","Aluksne","Stende","Zilani","Ventspils","Kolka","Liepāja","Daugavpils","Rūjiena","Zosēni","Skrīveri","Ainaži","Dobele","Priekuļi","Gulbene","Skulte","Rīga","Mērsrags","Jelgava","Saldus"]	
+			var poligoni=[]  
+			
+			for (var i = 0; i < polyCoords.length; i++) {
+					
+				poligoni[i] = new google.maps.Polygon({		//zīmējam poligonus ciklā
+						paths: polyCoords[i],
+						strokeColor: "#ff0000",
+						strokeOpacity: 0.1,
+						strokeWeight: 3,
+						fillColor: "#FF0000",
+						fillOpacity: 0.1,
+						skaititajs:i
+					  });
+				poligoni[i].setMap(map);
+				
+				google.maps.event.addListener(poligoni[i],"click", function(event) {		//saliekam katram poligonam listeneri
+									
+									//alert (this.skaititajs);
+									launchModel(event.latLng, this.skaititajs);
+									});				
+				}
+			
+
+			
+			//kas notiek, ja nospiež ārpus Latvijas
+			google.maps.event.addListener(map,"click", function(event) {
+
+					if (infowindow) {
+						infowindow.close();
+						}
+					infowindow=new google.maps.InfoWindow({
+						position: map.center,
+						
+					});
+					infowindow.setContent("Lūdzu izvēlieties teritoriju Latvijā");
+					infowindow.open(map);
+				
+			});
+			
+
+			
+			var poga = $("<input>")
+					.attr('type','button')
+					.attr('class','pogasKlase')
+					.attr('value','Aprēķināt gruntsūdens līmeņus');
+					
+																							//varianti, kas negāja
+																							//$(".pogasKlase", "click", function(event)
+																							//$("#modelaSelectors").delegate(".pogasKlase", "click", function(event)
+																							//poga.click(function(event)
+			$("body").delegate(".pogasKlase", "click", function(event) 
+																							
+					{
+					infowindow.setContent('<div>Uzgaidiet. Tiek veikts aprēķins. </div><div id="content-1">Nulle</div><div id="content-2">Viens</div><div id="content-3">Divi</div><div id="content-4">Trīs</div><div id="content-5">Četri</div><div id="content-6">Pieci</div><div id="content-7">Seši</div>');
+					
+					var divs = $('div[id^="content-"]').hide(),
+						i = 0;
+						(function cycle() { 
+							divs.eq(i).fadeIn(400)
+									  .delay(1000)
+									  .fadeOut(400, cycle);
+
+							i = ++i % divs.length; // increment i, 
+												   //   and reset to 0 when it equals divs.length
+						})();
+					
+					$.ajax(
+						{
+							url:'blakus.php',
+							type:'POST',
+							data:'&x=2&y=4&id=launaiskods&periodType=1',
+							success: function(data)
+							{
+								
+								infowindow.setContent('<div id=chartHead></div><div id="chartdiv" style="height:400px;width:300px; "></div>');
+								$.jqplot('chartdiv',  [eval(data)], {
+								title:'Ilggadīgie gruntsūdens līmeņi',
+								  
+								  highlighter: {
+									show: true,
+									sizeAdjust: 7.5
+								  },
+								  cursor: {
+									show: false
+								  }
+								});
+							},
+							error: function(error)
+							{
+								alert ("error");
+							}
+						})
+
+					});
+			
+			
+			function launchModel(kur,poligonaID){
+					
+				if (infowindow) {
+						infowindow.close();
+					}
+						infowindow=new google.maps.InfoWindow({
+						position: kur, //event.latLng,
+					});
+				//alert (kur);
+				fevents(map,kur,coordWGS,coordBTM93);
+				//fevents(map,event.latLng,coordWGS,coordBTM93);
+				infowindow.open(map);
+					
+
+				var divs=$('<div>Izvēlies vietu, kurā aprēķināt gruntsūdens līmeņus.</br>Modelēšanai izmantotie meteoroloģiskie dati </br>tiks ņemti no stacijas "'+meteoSarakstsID[poligonaID]+'"</br></br></div>')
+					.attr('id','modelaSelektors');
+					
+				//infowindow.setContent("<div id='modelaSelektors'>virsraksts<input class='pogasKlase' type='button'> </div>");
+				infowindow.setContent($(divs).append(poga).html());
+				
+				//alert (isFirstClick);
+				if (isFirstClick==true){
+					map.setZoom(12);
+					isFirstClick=false;
+					}
+				map.panTo(kur);
+				
+			};
+			//});
+			
+			
+		};
+		
+
+		
+		function returnXY(latlng,coordWGS,coordBTM93){
+		var p = new Proj4js.Point(latlng.lng(),latlng.lat());
+		Proj4js.transform(coordWGS, coordBTM93, p);
+		return Math.round(p.x)+";"+Math.round(p.y);
+		};
+
+		
+		function fevents(map,point,coordWGS,coordBTM93) {
+			//var point = marker.getPosition();
+			
+			var WGSLat = point.lng();
+			var WGSLng = point.lat();
+			var p = new Proj4js.Point(WGSLat,WGSLng);
+			Proj4js.transform(coordWGS, coordBTM93, p);
+			
+			document.getElementById("xCoord").value=Math.round(p.x);
+			document.getElementById("yCoord").value = Math.round(p.y);
+			
+			//document.getElementById("yCoord").value = point.lng();
+			//map.panTo(point);
+			};
+		
+		
+  </script>
+  
+<div id="map_canvas" style="height:700px; width:100%;"></div>
+	
+<div id="asd">wtf</div>
+
+</body>
+</html>
+
