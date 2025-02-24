@@ -449,21 +449,22 @@ $(document).ready(function() {
 		var polygonNames = ["Rucava", "Dagda", "Bauska", "Rezekne", "Aluksne", "Stende", "Zilani", "Ventspils", "Kolka", "Liepāja", "Daugavpils", "Rūjiena", "Zosēni", "Skrīveri", "Ainaži", "Dobele", "Priekuļi", "Gulbene", "Skulte", "Rīga", "Mērsrags", "Jelgava", "Saldus"];
 
 		var polygons = [];
-		for (let i = 0; i < polygonCoords.length; i++) {  // Use let instead of var
+		// Polygon creation loop
+		for (let i = 0; i < polygonCoords.length; i++) {
 			let polygon = L.polygon(polygonCoords[i], {color:'red'}).addTo(map);
 			polygons.push(polygon);
 
 			polygon.on('click', function(e){
-				// Convert clicked point from WGS84 to Baltic TM-93
+				// Convert coordinates from WGS84 to Baltic TM-93
 				var pointTM93 = proj4(coordWGS84, coordBTM93, [e.latlng.lng, e.latlng.lat]);
 				var xTM93 = Math.round(pointTM93[0]);
 				var yTM93 = Math.round(pointTM93[1]);
 
-				// Update coordinates in input fields at the top
+				// Update input fields
 				$('#xCoord').val(xTM93);
 				$('#yCoord').val(yTM93);
 
-				// Create popup with both coordinate systems and polygon name
+				// Popup showing polygon name and both coordinate systems
 				L.popup()
 					.setLatLng(e.latlng)
 					.setContent(
@@ -472,25 +473,30 @@ $(document).ready(function() {
 						"<b>Baltic TM-93 koordinātas:</b> " + xTM93 + ", " + yTM93
 					)
 					.openOn(map);
-			});
-			
-			map.on('click', function(e){
-				var pointTM93 = proj4(coordWGS84, coordBTM93, [e.latlng.lng, e.latlng.lat]);
-				var xTM93 = Math.round(pointTM93[0]);
-				var yTM93 = Math.round(pointTM93[1]);
 
-				$('#xCoord').val(xTM93);
-				$('#yCoord').val(yTM93);
-
-				L.popup()
-					.setLatLng(e.latlng)
-					.setContent(
-						"<b>WGS84 koordinātas:</b> " + e.latlng.lat.toFixed(5) + ", " + e.latlng.lng.toFixed(5) + "<br>" +
-						"<b>Baltic TM-93 koordinātas:</b> " + xTM93 + ", " + yTM93
-					)
-					.openOn(map);
+				// Prevent the map click event from firing
+				L.DomEvent.stopPropagation(e);
 			});
 		}
+
+		// Map click handler (outside polygon loop!)
+		map.on('click', function(e){
+			var pointTM93 = proj4(coordWGS84, coordBTM93, [e.latlng.lng, e.latlng.lat]);
+			var xTM93 = Math.round(pointTM93[0]);
+			var yTM93 = Math.round(pointTM93[1]);
+
+			$('#xCoord').val(xTM93);
+			$('#yCoord').val(yTM93);
+
+			L.popup()
+				.setLatLng(e.latlng)
+				.setContent(
+					"<b>WGS84 koordinātas:</b> " + e.latlng.lat.toFixed(5) + ", " + e.latlng.lng.toFixed(5) + "<br>" +
+					"<b>Baltic TM-93 koordinātas:</b> " + xTM93 + ", " + yTM93
+				)
+				.openOn(map);
+		});
+
 
 });
 </script>
